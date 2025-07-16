@@ -1,4 +1,4 @@
-name: Convert Markdown to PDF and Publish as Release
+name: Convert Markdown to PDF and Publish as Individual Assets
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # Required to create releases and upload assets
+      contents: write  # Needed for release creation and file uploads
 
     steps:
     - name: Checkout repository
@@ -21,7 +21,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y pandoc texlive texlive-latex-extra
 
-    - name: Convert all Markdown files to PDF
+    - name: Convert Markdown files to PDF
       run: |
         mkdir -p output
         shopt -s globstar nullglob
@@ -30,15 +30,11 @@ jobs:
           pandoc "$file" -o "output/${filename}.pdf"
         done
 
-    - name: Archive PDFs
-      run: |
-        zip -j output/pdfs.zip output/*.pdf
-
-    - name: Create GitHub Release and Upload Asset
+    - name: Create GitHub Release and Upload PDFs
       uses: softprops/action-gh-release@v2
       with:
         tag_name: pdf-release
         name: Markdown PDFs
-        files: output/pdfs.zip
+        files: output/*.pdf
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
