@@ -1,41 +1,44 @@
-name: Convert Markdown to PDF and Release
+name: Convert Markdown to PDF and Publish as Release
 
 on:
   push:
     paths:
-      - 'docs/**/*.md'
+      - '**/*.md'
 
 jobs:
-  convert_and_release:
+  convert-and-release:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # Required to create releases and upload assets
+
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Pandoc and LaTeX
+    - name: Install Pandoc and LaTeX
       run: |
         sudo apt-get update
         sudo apt-get install -y pandoc texlive texlive-latex-extra
 
-    - name: Convert Markdown to PDF
+    - name: Convert all Markdown files to PDF
       run: |
         mkdir -p output
-        for file in docs/*.md; do
+        shopt -s globstar nullglob
+        for file in **/*.md; do
           filename=$(basename "$file" .md)
           pandoc "$file" -o "output/${filename}.pdf"
         done
 
-    - name: Generate release tag
-      id: tag
+    - name: Archive PDFs
       run: |
-        echo "tag_name=md2pdf-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+        zip -j output/pdfs.zip output/*.pdf
 
-    - name: Create GitHub Release
+    - name: Create GitHub Release and Upload Asset
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.tag.outputs.tag_name }}
-        name: "Markdown to PDF Release - ${{ steps.tag.outputs.tag_name }}"
-        files: output/*.pdf
+        tag_name: pdf-release
+        name: Markdown PDFs
+        files: output/pdfs.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
