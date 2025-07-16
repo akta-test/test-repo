@@ -1,0 +1,41 @@
+name: Convert Markdown to PDF and Release
+
+on:
+  push:
+    paths:
+      - 'docs/**/*.md'
+
+jobs:
+  convert_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Pandoc and LaTeX
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc texlive texlive-latex-extra
+
+    - name: Convert Markdown to PDF
+      run: |
+        mkdir -p output
+        for file in docs/*.md; do
+          filename=$(basename "$file" .md)
+          pandoc "$file" -o "output/${filename}.pdf"
+        done
+
+    - name: Generate release tag
+      id: tag
+      run: |
+        echo "tag_name=md2pdf-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.tag_name }}
+        name: "Markdown to PDF Release - ${{ steps.tag.outputs.tag_name }}"
+        files: output/*.pdf
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
